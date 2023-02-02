@@ -25,7 +25,7 @@ fs.readdirSync(`./animehay/data`).forEach((file) => {
 
 async function main() {
   console.log("Đang khởi tạo...");
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({ headless: false });
 
   console.log("Lấy dữ liệu...");
   const idsTracking = await getTracking(browser);

@@ -20,9 +20,9 @@ async function getGroup() {
     }, {});
 
   for (let index = 0; index < trackData.length; index += 1) {
-    trackData[index].movieEpisodes = JSON.stringify(
-      watchData[trackData[index].movieId]
-    );
+    trackData[index].movieEpisodes = `"${JSON.stringify(
+      watchData[trackData[index].movieId] || []
+    )}"`;
   }
 
   return trackData;

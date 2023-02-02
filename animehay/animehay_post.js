@@ -115,7 +115,7 @@ async function getPost(browser, idsUpdate) {
     if (prevDataItem?.movieEpisodes !== pageData?.movieEpisodes) {
       prevData[pageData.movieId] = pageData;
       const epsData = pageData.movieEpisodes.replace(
-        `${prevDataItem.movieEpisodes}||`,
+        `${prevDataItem?.movieEpisodes || ''}||`,
         ""
       );
       ids.push(...epsData.split("||"));

@@ -29,6 +29,7 @@ async function getTracking(browser) {
 
     const pageData = await page.evaluate(() => {
       const movieItem = document.querySelectorAll(".movies-list .movie-item");
+      
       const movieItemArr = Array.from(movieItem);
       return movieItemArr.map((movieItem) => {
         const movieId = movieItem.getAttribute("id").split("-")[2];
@@ -39,8 +40,14 @@ async function getTracking(browser) {
         const movieImage = movieItem.querySelector("img").src;
         const movieEpisode =
           movieItem.querySelector(".episode-latest").innerText;
-        const movieEpisodeTotal = movieEpisode.split("/")?.[1];
-        const movieEpisodeCurrent = movieEpisode.split("/")?.[0];
+
+        let movieEpisodeTotal = movieEpisode.split("/")?.[1];
+        let movieEpisodeCurrent = movieEpisode.split("/")?.[0];
+
+        if (movieEpisode.toLowerCase().indexOf("phút") > -1) {
+          movieEpisodeTotal = "";
+          movieEpisodeCurrent = movieEpisode;
+        }
 
         return {
           movieId,
@@ -59,8 +66,6 @@ async function getTracking(browser) {
         item?.movieEpisodeCurrent
     );
 
-    
-
     if (!isEndUpdate) {
       pageData.forEach((item) => {
         const csvItem = prevData?.[item.movieId];
@@ -75,7 +80,7 @@ async function getTracking(browser) {
       continue;
     }
 
-      break;
+    break;
   } while (true);
 
   const csvDataArr = Object.values(prevData);

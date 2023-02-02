@@ -1,6 +1,6 @@
 const fs = require("fs");
 const papa = require("papaparse");
-const { PathWatchData } = require("./core/const");
+const { PathWatchData, PathWatchTempData } = require("./core/const");
 const { writeDataToCsv } = require("./core/functions");
 
 async function getWatch(browser, idsUpdate) {
@@ -11,6 +11,10 @@ async function getWatch(browser, idsUpdate) {
     if (page) page.close();
   });
 
+  const idsTemp = fs.readFileSync(PathWatchTempData, "utf8").split("\n");
+  fs.writeFileSync(PathWatchTempData, "");
+
+  idsUpdate = [...idsTemp, ...idsUpdate];
   for (let i = 0; i < idsUpdate.length; i += 1) {
     const [ep, link] = idsUpdate[i]?.split("|");
     if (!link) continue;
@@ -20,6 +24,7 @@ async function getWatch(browser, idsUpdate) {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     if ((await page.$("#count-second-unlock")) !== null) {
+      fs.writeFileSync(PathWatchTempData, `${idsUpdate[i]}\n`, { flag: "a" });
       continue;
     }
 
