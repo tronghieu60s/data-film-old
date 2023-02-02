@@ -1,6 +1,6 @@
 const fs = require("fs");
 const papa = require("papaparse");
-const { PathPostData } = require("./core/const");
+const { PathPostData, PathPostTempData } = require("./core/const");
 
 const prevData = papa
   .parse(fs.readFileSync(PathPostData, { flag: "r", encoding: "utf8" }), {
@@ -16,6 +16,10 @@ async function getPost(browser, idsUpdate) {
   const ids = [];
   const page = await browser.newPage();
 
+  const idsTemp = fs.readFileSync(PathPostTempData, "utf8").split("\n");
+  fs.writeFileSync(PathPostTempData, "");
+
+  idsUpdate = [...idsTemp, ...idsUpdate];
   for (let i = 0; i < idsUpdate.length; i += 1) {
     const link = idsUpdate[i];
     const path = `https://animehay.pro/thong-tin-phim/-${link}.html`;

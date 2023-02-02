@@ -1,5 +1,4 @@
 const fs = require("fs");
-const papa = require("papaparse");
 const { PathWatchData, PathWatchTempData } = require("./core/const");
 const { writeDataToCsv } = require("./core/functions");
 
@@ -34,6 +33,7 @@ async function getWatch(browser, idsUpdate) {
 
       const movieLinkSelector = document.querySelector("link[rel=canonical]");
       const movieLink = movieLinkSelector?.href || "";
+      const movieEpId = movieLink?.split("-").pop().split(".")[0] || "";
 
       const movieIdSelector = document.querySelector(
         'a[title="Thông tin phim"]'
@@ -44,7 +44,7 @@ async function getWatch(browser, idsUpdate) {
       const movieHdxSelector = document.querySelector("#video-player iframe");
       const movieHdx = movieHdxSelector?.src || "";
 
-      return { movieId, movieLink, movieHdx };
+      return { movieId, movieEpId, movieLink, movieHdx };
     });
 
     const epData = { movieEp: ep, ...pageData };

@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./animehay/index.js"
+    "test": "node ./animehay/animehay_test.js",
+    "start": "node ./animehay/animehay_index.js"
   },
   "author": "",
   "license": "ISC",
