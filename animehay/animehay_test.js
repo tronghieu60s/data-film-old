@@ -5,6 +5,7 @@ const {
   PathTrackingData,
   PathWatchData,
   PathPostTempData,
+  PathWatchTempData,
 } = require("./core/const");
 
 main();
@@ -71,7 +72,10 @@ async function main() {
     console.log("Prepare Update: ", trackItemId);
     idsPost.push(trackItemId);
   }
+
   fs.writeFileSync(PathPostTempData, idsPost.join("\n"), { flag: "a" });
+
+  fs.writeFileSync(PathWatchTempData, "", { flag: "w" });
 
   const watchData = papa
     .parse(fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }), {
@@ -93,11 +97,21 @@ async function main() {
 
     const postEpisodes = postItem?.movieEpisodes || "";
     const watchEpisodes =
-      watchItem?.map((item) => `${item.movieEp}|${item.movieId}`) || [];
+      watchItem
+        ?.sort((a, b) => a.movieEp > b.movieEp)
+        ?.map((item) => `${item.movieEp}|${item.movieEpId}`) || [];
     const watchEpisodesStr = watchEpisodes.join("||");
 
     if (postEpisodes === watchEpisodesStr) continue;
-    console.log(postEpisodes, "-----", watchEpisodesStr);
 
+    postEpisodes.split("||").forEach((item) => {
+      const [ep, epId] = item.split("|");
+      if (watchEpisodes.indexOf(`${ep}|${epId}`) === -1) {
+        idsWatch.push(`${ep}|${epId}`);
+      }
+    });
   }
+
+  const idsData = idsWatch?.map((item) => item.split("||")).flat() || [];
+  fs.writeFileSync(PathWatchTempData, idsData.join("\n"), { flag: "a" });
 }

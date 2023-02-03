@@ -10,7 +10,11 @@ async function getWatch(browser, idsUpdate) {
     if (page) page.close();
   });
 
-  const idsTemp = fs.readFileSync(PathWatchTempData, "utf8").split("\n");
+  const idsTemp =
+    fs
+      .readFileSync(PathWatchTempData, "utf8")
+      .split("\n")
+      .filter((item) => item) || [];
   fs.writeFileSync(PathWatchTempData, "");
 
   idsUpdate = [...idsTemp, ...idsUpdate];
@@ -21,6 +25,11 @@ async function getWatch(browser, idsUpdate) {
     const path = `https://animehay.pro/xem-phim/-${link}.html`;
     await page.goto(path, { timeout: 0, waitUntil: "domcontentloaded" });
     await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const is404 = await page.$(".ah_404");
+    if (is404) {
+      continue;
+    }
 
     if ((await page.$("#count-second-unlock")) !== null) {
       fs.writeFileSync(PathWatchTempData, `${idsUpdate[i]}\n`, { flag: "a" });

@@ -16,7 +16,11 @@ async function getPost(browser, idsUpdate) {
   const ids = [];
   const page = await browser.newPage();
 
-  const idsTemp = fs.readFileSync(PathPostTempData, "utf8").split("\n");
+  const idsTemp =
+    fs
+      .readFileSync(PathPostTempData, "utf8")
+      .split("\n")
+      .filter((item) => item) || [];
   fs.writeFileSync(PathPostTempData, "");
 
   idsUpdate = [...idsTemp, ...idsUpdate];
@@ -24,6 +28,11 @@ async function getPost(browser, idsUpdate) {
     const link = idsUpdate[i];
     const path = `https://animehay.pro/thong-tin-phim/-${link}.html`;
     await page.goto(path);
+
+    const is404 = await page.$(".ah_404");
+    if (is404) {
+      continue;
+    }
 
     const pageData = await page.evaluate(() => {
       const movieLinkSelector = document.querySelector("link[rel=canonical]");
@@ -119,7 +128,7 @@ async function getPost(browser, idsUpdate) {
     if (prevDataItem?.movieEpisodes !== pageData?.movieEpisodes) {
       prevData[pageData.movieId] = pageData;
       const epsData = pageData.movieEpisodes.replace(
-        `${prevDataItem?.movieEpisodes || ''}||`,
+        `${prevDataItem?.movieEpisodes || ""}||`,
         ""
       );
       ids.push(...epsData.split("||"));
