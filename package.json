@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node ./animehay/animehay_test.js",
-    "start": "node ./animehay/animehay_index.js"
+    "test": "node ./animehay/testing.js",
+    "start": "node ./animehay/index.js"
   },
   "author": "",
   "license": "ISC",

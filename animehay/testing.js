@@ -8,8 +8,6 @@ const {
   PathWatchTempData,
 } = require("./core/const");
 
-main();
-
 async function main() {
   fs.writeFileSync(PathPostTempData, "", { flag: "w" });
 
@@ -115,3 +113,5 @@ async function main() {
   const idsData = idsWatch?.map((item) => item.split("||")).flat() || [];
   fs.writeFileSync(PathWatchTempData, idsData.join("\n"), { flag: "a" });
 }
+
+main();
