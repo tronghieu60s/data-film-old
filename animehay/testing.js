@@ -12,7 +12,7 @@ const {
 
 async function main() {
   await testConflict();
-  //await testDuplicateData();
+  await testDuplicateData();
 }
 
 main();
@@ -77,7 +77,6 @@ async function testConflict() {
     if (isPassEpTotal && isPassEpCurrent) {
       continue;
     }
-    console.log("Prepare Update: ", trackItemId);
     idsPost.push(trackItemId);
   }
 
