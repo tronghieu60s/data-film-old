@@ -4,10 +4,10 @@ const puppeteer = require("puppeteer");
 const {
   PathResultData,
   PathTrackingData,
-  PathWatchData,
   PathWatchTempData,
   PathPostData,
   PathWatchData,
+  PathPostTempData,
 } = require("./core/const");
 const { writeDataToCsv } = require("./core/functions");
 

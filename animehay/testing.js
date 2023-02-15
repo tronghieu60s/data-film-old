@@ -6,10 +6,20 @@ const {
   PathWatchData,
   PathPostTempData,
   PathWatchTempData,
+  PathPostDuplicateData,
+  PathWatchDuplicateData,
 } = require("./core/const");
 
 async function main() {
+  await testConflict();
+  //await testDuplicateData();
+}
+
+main();
+
+async function testConflict() {
   fs.writeFileSync(PathPostTempData, "", { flag: "w" });
+  fs.writeFileSync(PathWatchTempData, "", { flag: "w" });
 
   const trackData = papa.parse(
     fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }),
@@ -73,8 +83,6 @@ async function main() {
 
   fs.writeFileSync(PathPostTempData, idsPost.join("\n"), { flag: "a" });
 
-  fs.writeFileSync(PathWatchTempData, "", { flag: "w" });
-
   const watchData = papa
     .parse(fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }), {
       header: true,
@@ -103,15 +111,53 @@ async function main() {
     if (postEpisodes === watchEpisodesStr) continue;
 
     postEpisodes.split("||").forEach((item) => {
-      const [ep, epId] = item.split("|");
-      if (watchEpisodes.indexOf(`${ep}|${epId}`) === -1) {
-        idsWatch.push(`${ep}|${epId}`);
-      }
+      if (watchEpisodes.indexOf(item) === -1) idsWatch.push(item);
     });
   }
 
-  const idsData = idsWatch?.map((item) => item.split("||")).flat() || [];
-  fs.writeFileSync(PathWatchTempData, idsData.join("\n"), { flag: "a" });
+  fs.writeFileSync(PathWatchTempData, idsWatch.join("\n"), { flag: "a" });
 }
 
-main();
+async function testDuplicateData() {
+  /* Duplicate Post Data */
+  const postData = papa.parse(
+    fs.readFileSync(PathPostData, { flag: "r", encoding: "utf8" }),
+    { header: true, skipEmptyLines: true }
+  ).data;
+
+  const idsPost = [];
+  for (let i = 0; i < postData.length; i += 1) {
+    for (let j = 0; j < postData.length; j += 1) {
+      if (i === j) continue;
+
+      if (postData[i].movieId === postData[j].movieId) {
+        idsPost.push(postData[i].movieId);
+        continue;
+      }
+    }
+  }
+  fs.writeFileSync(PathPostDuplicateData, [...new Set(idsPost)].join("\n"), {
+    flag: "w",
+  });
+
+  /* Duplicate Watch Data */
+  const watchData = papa.parse(
+    fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }),
+    { header: true, skipEmptyLines: true }
+  ).data;
+
+  const idsWatch = [];
+  for (let i = 0; i < watchData.length; i += 1) {
+    for (let j = 0; j < watchData.length; j += 1) {
+      if (i === j) continue;
+
+      if (watchData[i].movieEpId === watchData[j].movieEpId) {
+        idsWatch.push(watchData[i].movieEpId);
+        continue;
+      }
+    }
+  }
+  fs.writeFileSync(PathWatchDuplicateData, [...new Set(idsWatch)].join("\n"), {
+    flag: "w",
+  });
+}

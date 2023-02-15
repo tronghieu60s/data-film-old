@@ -1,16 +1,20 @@
-const PathPostData = "./animehay/data/animehay_post.csv";
-const PathResultData = "./animehay/data/animehay_result.csv";
-const PathTrackingData = "./animehay/data/animehay_tracking.csv";
-const PathWatchData = "./animehay/data/animehay_watch.csv";
+const PathPostData = "./animehay/data/post.csv";
+const PathTrackingData = "./animehay/data/tracking.csv";
+const PathWatchData = "./animehay/data/watch.csv";
+const PathResultData = "./animehay/data/result.csv";
 
-const PathPostTempData = "./animehay/temp/animehay_post.txt";
-const PathWatchTempData = "./animehay/temp/animehay_watch.txt";
+const PathPostTempData = "./animehay/temp/post.txt";
+const PathWatchTempData = "./animehay/temp/watch.txt";
+const PathPostDuplicateData = "./animehay/temp/post_duplicate.txt";
+const PathWatchDuplicateData = "./animehay/temp/watch_duplicate.txt";
 
 module.exports = {
   PathPostData,
-  PathResultData,
   PathTrackingData,
   PathWatchData,
+  PathResultData,
   PathPostTempData,
   PathWatchTempData,
+  PathPostDuplicateData,
+  PathWatchDuplicateData,
 };
