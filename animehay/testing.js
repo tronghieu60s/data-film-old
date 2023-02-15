@@ -80,6 +80,7 @@ async function testConflict() {
     idsPost.push(trackItemId);
   }
 
+  console.log(idsPost);
   fs.writeFileSync(PathPostTempData, idsPost.join("\n"), { flag: "a" });
 
   const watchData = papa
@@ -114,6 +115,7 @@ async function testConflict() {
     });
   }
 
+  console.log(idsWatch);
   fs.writeFileSync(PathWatchTempData, idsWatch.join("\n"), { flag: "a" });
 }
 
@@ -135,7 +137,10 @@ async function testDuplicateData() {
       }
     }
   }
-  fs.writeFileSync(PathPostDuplicateData, [...new Set(idsPost)].join("\n"), {
+
+  const uniqueIdsPost = [...new Set(idsPost)];
+  console.log(uniqueIdsPost);
+  fs.writeFileSync(PathPostDuplicateData, uniqueIdsPost.join("\n"), {
     flag: "w",
   });
 
@@ -156,7 +161,10 @@ async function testDuplicateData() {
       }
     }
   }
-  fs.writeFileSync(PathWatchDuplicateData, [...new Set(idsWatch)].join("\n"), {
+
+  const uniqueIdsWatch = [...new Set(idsWatch)];
+  console.log(uniqueIdsWatch);
+  fs.writeFileSync(PathWatchDuplicateData, uniqueIdsWatch.join("\n"), {
     flag: "w",
   });
 }

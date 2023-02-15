@@ -28,8 +28,8 @@ fs.readdirSync(`./animehay/data`).forEach((file) => {
 });
 
 async function main() {
-  console.log("Đang khởi tạo...");
-  const browser = await puppeteer.launch({ headless: false });
+  console.log("Đang mở trình duyệt...");
+  const browser = await puppeteer.launch({ headless: true });
 
   console.log("Lấy dữ liệu...");
   const idsTracking = await getTracking(browser);
@@ -43,6 +43,7 @@ async function main() {
   await getWatch(browser, idsPost);
 
   await browser.close();
+  console.log("Đã đóng trình duyệt.");
 
   console.log("Đang xuất dữ liệu ra file CSV...");
   const resultData = await getExportCsv();
@@ -51,8 +52,6 @@ async function main() {
 
   console.log("Hoàn tất!");
 }
-
-main();
 
 async function getTracking(browser) {
   const prevData = papa
@@ -389,3 +388,5 @@ async function getExportCsv() {
 
   return postData;
 }
+
+module.exports = main;
