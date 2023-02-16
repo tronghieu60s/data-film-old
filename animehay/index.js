@@ -273,6 +273,7 @@ async function getPost(browser, idsUpdate) {
         movieEpisodeTotal,
         movieEpisodeCurrent,
         movieEpisodes,
+        movieModified: new Date().toISOString(),
       };
     });
 
