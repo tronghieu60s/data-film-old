@@ -21,6 +21,7 @@ async function testConflict() {
   fs.writeFileSync(PathPostTempData, "", { flag: "w" });
   fs.writeFileSync(PathWatchTempData, "", { flag: "w" });
 
+  /* Conflict Data Track - Post */
   const trackData = papa.parse(
     fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }),
     { header: true, skipEmptyLines: true }
@@ -80,9 +81,9 @@ async function testConflict() {
     idsPost.push(trackItemId);
   }
 
-  console.log(idsPost);
   fs.writeFileSync(PathPostTempData, idsPost.join("\n"), { flag: "a" });
 
+  /* Conflict Data Post - Watch */
   const watchData = papa
     .parse(fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }), {
       header: true,
@@ -115,7 +116,6 @@ async function testConflict() {
     });
   }
 
-  console.log(idsWatch);
   fs.writeFileSync(PathWatchTempData, idsWatch.join("\n"), { flag: "a" });
 }
 
@@ -138,9 +138,7 @@ async function testDuplicateData() {
     }
   }
 
-  const uniqueIdsPost = [...new Set(idsPost)];
-  console.log(uniqueIdsPost);
-  fs.writeFileSync(PathPostDuplicateData, uniqueIdsPost.join("\n"), {
+  fs.writeFileSync(PathPostDuplicateData, [...new Set(idsPost)].join("\n"), {
     flag: "w",
   });
 
@@ -162,9 +160,12 @@ async function testDuplicateData() {
     }
   }
 
-  const uniqueIdsWatch = [...new Set(idsWatch)];
-  console.log(uniqueIdsWatch);
-  fs.writeFileSync(PathWatchDuplicateData, uniqueIdsWatch.join("\n"), {
+  fs.writeFileSync(PathWatchDuplicateData, [...new Set(idsWatch)].join("\n"), {
     flag: "w",
   });
 }
+
+module.exports = {
+  testConflict,
+  testDuplicateData,
+};

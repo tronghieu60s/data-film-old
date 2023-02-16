@@ -9,7 +9,7 @@ const {
   PathWatchData,
   PathPostTempData,
 } = require("./core/const");
-const { writeDataToCsv } = require("./core/functions");
+const { testConflict } = require("./testing");
 
 const curDate = new Date();
 const timeDate = curDate.toLocaleTimeString("vi").replace(/:/g, "");
@@ -27,7 +27,23 @@ fs.readdirSync(`./animehay/data`).forEach((file) => {
   );
 });
 
+fs.readdir("./animehay/bk", function (err, files) {
+  files = files
+    .map((f) => ({
+      name: f,
+      time: fs.statSync("./animehay/bk" + "/" + f).mtime.getTime(),
+    }))
+    .sort((a, b) => a.time - b.time)
+    .map((v) => v.name);
+  files.slice(0, files.length - 5).forEach((file) => {
+    fs.rmSync(`./animehay/bk/${file}`, { recursive: true });
+  });
+});
+
 async function main() {
+  console.log("Đang kiểm tra...");
+  await testConflict();
+
   console.log("Đang mở trình duyệt...");
   const browser = await puppeteer.launch({ headless: true });
 
@@ -286,6 +302,11 @@ async function getPost(browser, idsUpdate) {
 }
 
 async function getWatch(browser, idsUpdate) {
+  const prevData = papa.parse(
+    fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }),
+    { header: true, skipEmptyLines: true }
+  ).data;
+
   const page = await browser.newPage();
 
   browser.on("targetcreated", async (target) => {
@@ -339,10 +360,11 @@ async function getWatch(browser, idsUpdate) {
       return { movieId, movieEpId, movieLink, movieHdx };
     });
 
-    const epData = { movieEp: ep, ...pageData };
-
-    writeDataToCsv(epData, PathWatchData);
+    prevData.push({ movieEp: ep, ...pageData });
   }
+
+  const csvDataString = papa.unparse(prevData, { header: true });
+  fs.writeFileSync(PathWatchData, csvDataString, { flag: "w" });
 
   await page.close();
 }
