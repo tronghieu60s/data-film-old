@@ -8,8 +8,9 @@ const {
   PathPostData,
   PathWatchData,
   PathPostTempData,
+  PathResultNewData,
+  PathPrevData,
 } = require("./core/const");
-const { testConflict } = require("./testing");
 
 const curDate = new Date();
 const timeDate = curDate.toLocaleTimeString("vi").replace(/:/g, "");
@@ -41,9 +42,6 @@ fs.readdir("./animehay/bk", function (err, files) {
 });
 
 async function main() {
-  console.log("Đang kiểm tra...");
-  await testConflict();
-
   console.log("Đang mở trình duyệt...");
   const browser = await puppeteer.launch({ headless: true });
 
@@ -63,8 +61,15 @@ async function main() {
 
   console.log("Đang xuất dữ liệu ra file CSV...");
   const resultData = await getExportCsv();
+
   const csvDataString = papa.unparse(resultData, { header: true });
   fs.writeFileSync(PathResultData, csvDataString, { flag: "w" });
+
+  console.log("Đang lưu dữ liệu mới ra file CSV...");
+  const changedData = await getChangedCsv(resultData);
+
+  const csvChangedString = papa.unparse(changedData, { header: true });
+  fs.writeFileSync(PathResultNewData, csvChangedString, { flag: "w" });
 
   console.log("Hoàn tất!");
 }
@@ -180,7 +185,7 @@ async function getPost(browser, idsUpdate) {
       .filter((item) => item) || [];
   fs.writeFileSync(PathPostTempData, "");
 
-  idsUpdate = [...idsTemp, ...idsUpdate];
+  idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
   for (let i = 0; i < idsUpdate.length; i += 1) {
     const link = idsUpdate[i];
     const path = `https://animehay.pro/thong-tin-phim/-${link}.html`;
@@ -322,7 +327,7 @@ async function getWatch(browser, idsUpdate) {
       .filter((item) => item) || [];
   fs.writeFileSync(PathWatchTempData, "");
 
-  idsUpdate = [...idsTemp, ...idsUpdate];
+  idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
   for (let i = 0; i < idsUpdate.length; i += 1) {
     const [ep, link] = idsUpdate[i]?.split("|");
     if (!link) continue;
@@ -410,6 +415,46 @@ async function getExportCsv() {
   }
 
   return postData;
+}
+
+async function getChangedCsv(result) {
+  const prevData = papa
+    .parse(fs.readFileSync(PathPrevData, { flag: "r", encoding: "utf8" }), {
+      header: true,
+      skipEmptyLines: true,
+    })
+    .data.reduce(
+      (obj, item) => Object.assign(obj, { [item.movieId]: { ...item } }),
+      {}
+    );
+
+  const currentData = papa.parse(
+    fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }),
+    { header: true, skipEmptyLines: true }
+  ).data;
+
+  const changedData = [];
+  currentData.forEach((item) => {
+    const csvItem = prevData?.[item.movieId];
+    if (
+      !csvItem ||
+      csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
+    ) {
+      changedData.push(item.movieId);
+    }
+  });
+
+  const resultData = result.reduce((cur, item) => {
+    if (!cur[item.movieId]) cur[item.movieId] = [];
+    cur[item.movieId].push(item);
+    return cur;
+  }, {});
+
+  const updateData = [];
+  for (let i = 0; i < changedData.length; i += 1) {
+    updateData.push(...resultData[changedData[i]]);
+  }
+  return updateData;
 }
 
 module.exports = main;

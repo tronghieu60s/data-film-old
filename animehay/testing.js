@@ -164,8 +164,3 @@ async function testDuplicateData() {
     flag: "w",
   });
 }
-
-module.exports = {
-  testConflict,
-  testDuplicateData,
-};
