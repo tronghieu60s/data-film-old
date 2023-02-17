@@ -2,7 +2,7 @@ const PathPrevData = "./animehay/data/prev.csv";
 const PathPostData = "./animehay/data/post.csv";
 const PathTrackingData = "./animehay/data/tracking.csv";
 const PathWatchData = "./animehay/data/watch.csv";
-const PathResultData = "./animehay/data/result_data.csv";
+const PathResultData = "./animehay/data/result.csv";
 const PathResultNewData = "./animehay/data/result_new.csv";
 
 const PathPostTempData = "./animehay/temp/update_post.txt";

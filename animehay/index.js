@@ -104,7 +104,7 @@ async function getTracking(browser) {
 
       const movieItemArr = Array.from(movieItem);
       return movieItemArr.map((movieItem) => {
-        const movieId = movieItem.getAttribute("id").split("-")[2];
+        const movieId = movieItem.getAttribute("id").split("-")?.[2];
         const movieLink = movieItem.querySelector("a").href;
         const movieName = movieItem
           .querySelector(".name-movie")
@@ -117,7 +117,7 @@ async function getTracking(browser) {
         let movieEpisodeCurrent = movieEpisode.split("/")?.[0];
 
         if (movieEpisode.toLowerCase().indexOf("phút") > -1) {
-          movieEpisodeTotal = "";
+          movieEpisodeTotal = 1;
           movieEpisodeCurrent = movieEpisode;
         }
 
@@ -138,20 +138,21 @@ async function getTracking(browser) {
         item?.movieEpisodeCurrent
     );
 
-    if (isEndUpdate) {
-      break;
+    if (!isEndUpdate) {
+      pageData.forEach((item) => {
+        const csvItem = prevData?.[item.movieId];
+        if (
+          !csvItem ||
+          csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
+        ) {
+          ids.push(item.movieId);
+          prevData[item.movieId] = item;
+        }
+      });
+      continue;
     }
 
-    pageData.forEach((item) => {
-      const csvItem = prevData?.[item.movieId];
-      if (
-        !csvItem ||
-        csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
-      ) {
-        ids.push(item.movieId);
-        prevData[item.movieId] = item;
-      }
-    });
+    break;
   } while (true);
 
   const csvDataArr = Object.values(prevData);
@@ -196,22 +197,15 @@ async function getPost(browser, idsUpdate) {
     }
 
     const pageData = await page.evaluate(() => {
-      const movieLinkSelector = document.querySelector("link[rel=canonical]");
-      const movieLink = movieLinkSelector?.href || "";
+      const movieLink =
+        document.querySelector("link[rel=canonical]")?.href || "";
       const movieId = movieLink?.split("-").pop().split(".")[0] || "";
-
-      const movieNameSelector = document.querySelector(".heading_movie");
-      const movieName = movieNameSelector?.innerText || "";
-
-      const movieOriginalNameSelector = document.querySelector(
-        ".name_other div:nth-child(2)"
-      );
-      const movieOriginalName = movieOriginalNameSelector?.innerText || "";
-
-      const movieImageSelector = document.querySelector(
-        ".heading_movie ~ div img"
-      );
-      const movieImage = movieImageSelector?.src || "";
+      const movieName =
+        document.querySelector(".heading_movie")?.innerText || "";
+      const movieOriginalName =
+        document.querySelector(".name_other div:nth-child(2)")?.innerText || "";
+      const movieImage =
+        document.querySelector(".heading_movie ~ div img")?.src || "";
 
       const movieCategoriesSelector =
         document.querySelectorAll(".list_cate div a");
@@ -219,38 +213,27 @@ async function getPost(browser, idsUpdate) {
         .map((item) => item.innerText)
         .join("|");
 
-      const movieStatusSelector = document.querySelector(
-        ".status div:nth-child(2)"
-      );
-      const movieStatus = movieStatusSelector?.innerText
-        .toLowerCase()
+      const movieStatus = document
+        .querySelector(".status div:nth-child(2)")
+        ?.innerText.toLowerCase()
         .replace(/^.|\s\S/g, (a) => a.toUpperCase());
-
-      const moviePublishSelector = document.querySelector(
-        ".update_time div:nth-child(2)"
-      );
-      const moviePublish = moviePublishSelector?.innerText || "";
-
-      const movieDurationSelector = document.querySelector(
-        ".duration div:nth-child(2)"
-      );
+      const moviePublish =
+        document.querySelector(".update_time div:nth-child(2)")?.innerText ||
+        "";
       const movieDuration =
-        movieDurationSelector?.innerText.toLowerCase() || "";
-
-      const movieDescriptionSelector = document.querySelector(
-        ".desc div:nth-child(2)"
-      );
-      const movieDescription = movieDescriptionSelector?.innerText || "";
+        document
+          .querySelector(".duration div:nth-child(2)")
+          ?.innerText.toLowerCase() || "";
+      const movieDescription =
+        document.querySelector(".desc div:nth-child(2)")?.innerText || "";
 
       let movieEpisodeTotal = 1;
       if (movieDuration.includes("tập")) {
         movieEpisodeTotal = movieDuration.split("tập")?.[0].trim() || 1;
       }
 
-      const movieEpisodeCurrentSelector = document.querySelector(
-        ".list-item-episode a"
-      );
-      const movieEpisodeCurrent = movieEpisodeCurrentSelector?.innerText || 1;
+      const movieEpisodeCurrent =
+        document.querySelector(".list-item-episode a")?.innerText || 1;
 
       const movieEpisodesSelector = document.querySelectorAll(
         ".list-item-episode a"
@@ -277,7 +260,6 @@ async function getPost(browser, idsUpdate) {
         movieEpisodeTotal,
         movieEpisodeCurrent,
         movieEpisodes,
-        movieModified: new Date().toISOString(),
       };
     });
 
