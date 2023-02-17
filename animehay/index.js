@@ -138,21 +138,20 @@ async function getTracking(browser) {
         item?.movieEpisodeCurrent
     );
 
-    if (!isEndUpdate) {
-      pageData.forEach((item) => {
-        const csvItem = prevData?.[item.movieId];
-        if (
-          !csvItem ||
-          csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
-        ) {
-          ids.push(item.movieId);
-          prevData[item.movieId] = item;
-        }
-      });
-      continue;
+    if (isEndUpdate) {
+      break;
     }
 
-    break;
+    pageData.forEach((item) => {
+      const csvItem = prevData?.[item.movieId];
+      if (
+        !csvItem ||
+        csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
+      ) {
+        ids.push(item.movieId);
+        prevData[item.movieId] = item;
+      }
+    });
   } while (true);
 
   const csvDataArr = Object.values(prevData);

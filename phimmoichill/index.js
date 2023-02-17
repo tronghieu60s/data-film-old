@@ -1,14 +1,7 @@
 const fs = require("fs");
 const papa = require("papaparse");
 const puppeteer = require("puppeteer");
-const {
-  PathResultData,
-  PathTrackingData,
-  PathWatchTempData,
-  PathPostData,
-  PathWatchData,
-  PathPostTempData,
-} = require("./core/const");
+const { PathTrackingData } = require("./core/const");
 
 const curDate = new Date();
 const timeDate = curDate.toLocaleTimeString("vi").replace(/:/g, "");
@@ -41,7 +34,7 @@ fs.readdir("./phimmoichill/bk", function (err, files) {
 
 async function main() {
   console.log("Đang mở trình duyệt...");
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({ headless: false });
 
   console.log("Lấy dữ liệu...");
   const idsTracking = await getTracking(browser);
@@ -51,15 +44,23 @@ async function main() {
 }
 
 async function getTracking(browser) {
-  await getTrackingOdd(browser);
-  await getTrackingSeries(browser);
-}
+  const prevData = papa
+    .parse(fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }), {
+      header: true,
+      skipEmptyLines: true,
+    })
+    .data.reduce(
+      (obj, item) => Object.assign(obj, { [item.movieId]: { ...item } }),
+      {}
+    );
 
-async function getTrackingOdd(browser) {
   const ids = [];
   const page = await browser.newPage();
 
   let index = 0;
+
+  /* Film Odd */
+
   do {
     index += 1;
     const path = `https://phimmoichilla.net/list/phim-le/page-${index}/`;
@@ -69,43 +70,114 @@ async function getTrackingOdd(browser) {
       const movieItem = document.querySelectorAll(".list-film .item");
 
       const movieItemArr = Array.from(movieItem);
+      if (movieItemArr.length === 0) return movieItemArr;
+
       return movieItemArr.map((movieItem) => {
         const movieLink = movieItem.querySelector("a").href;
         const movieId = movieLink.split("-").pop().replace("pm", "");
         const movieName = movieItem.querySelector("h3").innerText.trim();
+        const movieImage = movieItem.querySelector("img").src;
         const movieEpisode = movieItem.querySelector("span.label").innerText;
+
+        const movieImageSplit = movieImage.split("&url=")?.[1];
+        const movieImageDecode = decodeURIComponent(movieImageSplit);
 
         return {
           movieId,
           movieLink,
           movieName,
+          movieImage: movieImageDecode,
           movieEpisodeTotal: "",
           movieEpisodeCurrent: movieEpisode,
         };
       });
     });
 
-    const isEndUpdate = pageData.length === 0;
-    if (!isEndUpdate) {
-      pageData.forEach((item) => {
-        const csvItem = prevData?.[item.movieId];
-        if (!csvItem) {
-          ids.push(item.movieId);
-          prevData[item.movieId] = item;
-        }
-      });
-      continue;
+    const isEndUpdate =
+      pageData.length === 0 ||
+      pageData.every((item) => prevData?.[item.movieId]);
+
+    if (isEndUpdate) {
+      break;
     }
 
-    break;
+    pageData.forEach((item) => {
+      const csvItem = prevData?.[item.movieId];
+      if (!csvItem) {
+        ids.push(item.movieId);
+        prevData[item.movieId] = item;
+      }
+    });
   } while (true);
 
   const csvDataArr = Object.values(prevData);
   const csvDataString = papa.unparse(csvDataArr, { header: true });
   fs.writeFileSync(PathTrackingData, csvDataString, { flag: "w" });
 
-}
+  /* Film Series */
+  index = 0;
+  do {
+    index += 1;
+    const path = `https://phimmoichilla.net/list/phim-bo/page-${index}/`;
+    await page.goto(path);
 
-async function getTrackingSeries(browser) {}
+    const pageData = await page.evaluate(() => {
+      const movieItem = document.querySelectorAll(".list-film .item");
+
+      const movieItemArr = Array.from(movieItem);
+      if (movieItemArr.length === 0) return movieItemArr;
+
+      return movieItemArr.map((movieItem) => {
+        const movieLink = movieItem.querySelector("a").href;
+        const movieId = movieLink.split("-").pop().replace("pm", "");
+        const movieName = movieItem.querySelector("h3").innerText.trim();
+        const movieImage = movieItem.querySelector("img").src;
+        const movieEpisode = movieItem.querySelector("span.label").innerText;
+
+        const movieImageSplit = movieImage.split("&url=")?.[1];
+        const movieImageDecode = decodeURIComponent(movieImageSplit);
+
+        const movieEpisodeCurrent = movieEpisode
+          .split("/")[0]
+          .replace("Tập", "")
+          .trim();
+
+        return {
+          movieId,
+          movieLink,
+          movieName,
+          movieImage: movieImageDecode,
+          movieEpisodeTotal: "",
+          movieEpisodeCurrent,
+        };
+      });
+    });
+
+    const isEndUpdate =
+      pageData.length === 0 ||
+      pageData.every(
+        (item) =>
+          prevData?.[item.movieId]?.movieEpisodeCurrent ===
+          item?.movieEpisodeCurrent
+      );
+
+    if (isEndUpdate) {
+      break;
+    }
+
+    pageData.forEach((item) => {
+      const csvItem = prevData?.[item.movieId];
+      if (
+        !csvItem ||
+        csvItem?.movieEpisodeCurrent !== item?.movieEpisodeCurrent
+      ) {
+        ids.push(item.movieId);
+        prevData[item.movieId] = item;
+      }
+    });
+  } while (true);
+
+  return ids;
+}
 
 module.exports = main;
