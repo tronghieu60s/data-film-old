@@ -95,7 +95,7 @@ async function getTracking(browser) {
           movieLink,
           movieName,
           movieImage: movieImageDecode,
-          movieEpisodeTotal: "",
+          movieEpisodeTotal: 1,
           movieEpisodeCurrent: movieEpisode,
         };
       });
@@ -154,14 +154,29 @@ async function getTracking(browser) {
           movieEpisodeCurrent = movieEpisode
             .split("-")[0]
             .replace("Tập", "")
+            .trim()
+            .split(" ")[0]
             .trim();
-        }
-        if (movieEpisode.includes("Hoàn Tất")) {
+          if (movieEpisodeCurrent.includes("/")) {
+            movieEpisodeTotal = movieEpisodeCurrent.split("/")[1];
+            movieEpisodeCurrent = movieEpisodeCurrent.split("/")[0];
+          }
+        } else if (movieEpisode.toLowerCase().includes("hoàn tất")) {
           const split = movieEpisode.substring(
             movieEpisode.indexOf("(") + 1,
             movieEpisode.indexOf(")")
           );
           movieEpisodeTotal = movieEpisodeCurrent = split.split("/")?.[0];
+        } else if (movieEpisode.includes("/")) {
+          const split = movieEpisode.split("/");
+          movieEpisodeTotal = split?.[1];
+          movieEpisodeCurrent = split?.[0];
+          movieEpisodeTotal = movieEpisodeTotal
+            .substring(0, movieEpisodeTotal.indexOf(" "))
+            .trim();
+          movieEpisodeCurrent = movieEpisodeCurrent
+            .substring(movieEpisodeCurrent.lastIndexOf(" "))
+            .trim();
         }
 
         return {
@@ -230,13 +245,21 @@ async function getPost(browser, idsUpdate) {
       .filter((item) => item) || [];
   fs.writeFileSync(PathPostTempData, "");
 
+  const trackData = papa
+    .parse(fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }), {
+      header: true,
+      skipEmptyLines: true,
+    })
+    .data.map((item) => item.movieId);
+
   idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
-  for (let i = 0; i < idsUpdate.length; i += 1) {
-    const link = idsUpdate[i];
+  for (let i = 0; i < trackData.length; i += 1) {
+    const link = trackData[i];
     const path = `https://phimmoichilla.net/info/-pm${link}`;
     await page.goto(path);
 
-    if (page.url() !== path) {
+    if (!page.url().includes("https://phimmoichilla.net/info/")) {
+      fs.writeFileSync(PathPostTempData, `${link}\n`, { flag: "a" });
       continue;
     }
 
@@ -246,11 +269,13 @@ async function getPost(browser, idsUpdate) {
       const movieId = movieLink?.split("-").pop().replace("pm", "") || "";
       const movieName =
         document.querySelector(".film-info .text h1")?.innerText || "";
-      const movieOriginalName =
-        document
-          .querySelector(".film-info .text h2")
-          ?.innerText.substring(0, text.lastIndexOf("("))
-          .trim() || "";
+
+      let movieOriginalName =
+        document.querySelector(".film-info .text h2")?.innerText || "";
+      movieOriginalName = movieOriginalName
+        .substring(0, movieOriginalName.lastIndexOf("("))
+        .trim();
+
       const movieImage =
         document.querySelector(".film-info .avatar").src?.src || "";
 
@@ -278,12 +303,16 @@ async function getPost(browser, idsUpdate) {
       const movieCast = Array.from(movieCastSelector)
         .map((item) => item.innerText)
         .join("|");
+      const movieTagsSelector = document.querySelectorAll(".tags-list a");
+      const movieTags = Array.from(movieTagsSelector)
+        .map((item) => item.innerText)
+        .join("|");
 
       let movieStatus =
         document.querySelector(".film-info .entry-meta li:nth-child(1) span")
           ?.innerText || "Hoàn Thành";
       if (
-        !movieStatus.includes("Hoàn Tất") &&
+        !movieStatus.toLowerCase().includes("hoàn tất") &&
         document.querySelector(".latest-episode")
       ) {
         movieStatus = "Đang Tiến Hành";
@@ -300,13 +329,13 @@ async function getPost(browser, idsUpdate) {
 
       const movieDescription =
         document.querySelector("#film-content")?.innerText || "";
-      const movieEpisode = document.querySelector(
-        ".film-info .entry-meta li:nth-child(1) span"
-      );
+      const movieEpisode =
+        document.querySelector(".film-info .entry-meta li:nth-child(1) span")
+          .innerText || "";
 
       let movieEpisodeTotal = "";
       let movieEpisodeCurrent = "";
-      if (movieEpisode.includes("Hoàn Tất")) {
+      if (movieEpisode.toLowerCase().includes("hoàn tất")) {
         const split = movieEpisode.substring(
           movieEpisode.indexOf("(") + 1,
           movieEpisode.indexOf(")")
@@ -319,6 +348,16 @@ async function getPost(browser, idsUpdate) {
             .querySelector(".latest-episode a")
             .innerText.replace("Tập", "")
             .trim()?.innerText || 1;
+      } else if (movieEpisode.includes("/")) {
+        const split = movieEpisode.split("/");
+        movieEpisodeTotal = split?.[1];
+        movieEpisodeCurrent = split?.[0];
+        movieEpisodeTotal = movieEpisodeTotal
+          .substring(0, movieEpisodeTotal.indexOf(" "))
+          .trim();
+        movieEpisodeCurrent = movieEpisodeCurrent
+          .substring(movieEpisodeCurrent.lastIndexOf(" "))
+          .trim();
       }
 
       return {
@@ -331,6 +370,7 @@ async function getPost(browser, idsUpdate) {
         movieCountry,
         movieDirectors,
         movieCast,
+        movieTags,
         movieStatus,
         moviePublish,
         movieDuration,
@@ -343,12 +383,18 @@ async function getPost(browser, idsUpdate) {
     const prevDataItem = prevData?.[pageData.movieId];
     if (!prevDataItem) {
       prevData[pageData.movieId] = pageData;
-      ids.push(...pageData.movieEpisodes.split("||"));
+      ids.push(pageData.movieId);
     }
 
     if (prevDataItem?.movieEpisodeCurrent !== pageData?.movieEpisodeCurrent) {
       prevData[pageData.movieId] = pageData;
       ids.push(pageData.movieId);
+    }
+
+    if (i % 20 === 0) {
+      const csvDataArr = Object.values(prevData);
+      const csvDataString = papa.unparse(csvDataArr, { header: true });
+      fs.writeFileSync(PathPostData, csvDataString, { flag: "w" });
     }
   }
 

@@ -427,14 +427,15 @@ async function getChangedCsv(result) {
 
   const resultData = result.reduce((cur, item) => {
     if (!cur[item.movieId]) cur[item.movieId] = [];
-    cur[item.movieId].push(item);
+    cur[item.movieId].push({ ...item, movieModified: new Date() });
     return cur;
   }, {});
 
-  const updateData = [];
+  let updateData = [];
   for (let i = 0; i < changedData.length; i += 1) {
     updateData.push(...resultData[changedData[i]]);
   }
+
   return updateData;
 }
 
