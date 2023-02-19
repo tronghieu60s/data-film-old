@@ -44,9 +44,9 @@ async function main() {
   const idsTracking = await getTracking(browser);
   console.log("Dữ liệu mới: ", idsTracking.join(", ") || "No Data");
 
-  // console.log("Đang cập nhật dữ liệu...");
-  // const idsPost = await getPost(browser, idsTracking);
-  // console.log("Dữ liệu tập phim mới: ", idsPost.join(", ") || "No Data");
+  console.log("Đang cập nhật dữ liệu...");
+  const idsPost = await getPost(browser, idsTracking);
+  console.log("Dữ liệu tập phim mới: ", idsPost.join(", ") || "No Data");
 
   console.log("Hoàn tất!");
 }
@@ -245,25 +245,22 @@ async function getPost(browser, idsUpdate) {
       .filter((item) => item) || [];
   fs.writeFileSync(PathPostTempData, "");
 
-  const trackData = papa
-    .parse(fs.readFileSync(PathTrackingData, { flag: "r", encoding: "utf8" }), {
-      header: true,
-      skipEmptyLines: true,
-    })
-    .data.map((item) => item.movieId);
-
   idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
-  for (let i = 0; i < trackData.length; i += 1) {
-    const link = trackData[i];
+  for (let i = 0; i < idsUpdate.length; i += 1) {
+    const link = idsUpdate[i];
     const path = `https://phimmoichilla.net/info/-pm${link}`;
     await page.goto(path);
+
+    try {
+      await page.waitForSelector(".film-info", { timeout: 5000 });
+    } catch (error) {}
 
     if (!page.url().includes("https://phimmoichilla.net/info/")) {
       fs.writeFileSync(PathPostTempData, `${link}\n`, { flag: "a" });
       continue;
     }
 
-    const pageData = await page.evaluate(() => {
+    const pageData = await page.evaluate(async () => {
       const movieLink =
         document.querySelector("link[rel=canonical]")?.href || "";
       const movieId = movieLink?.split("-").pop().replace("pm", "") || "";
@@ -277,64 +274,67 @@ async function getPost(browser, idsUpdate) {
         .trim();
 
       const movieImage =
-        document.querySelector(".film-info .avatar").src?.src || "";
+        document.querySelector(".film-info .avatar")?.src || "";
 
-      const movieCategoriesSelector = document.querySelectorAll(
-        ".film-info .entry-meta li:nth-child(4) a"
+      let movieStatus = "";
+      let moviePublish = "";
+      let movieCountry = "";
+      let movieCategories = "";
+      let movieDirectors = "";
+      let movieCast = "";
+      let movieDuration = "";
+      let movieEpisode = "";
+      const movieMetaSelector = document.querySelectorAll(
+        ".film-info .entry-meta li"
       );
-      const movieCategories = Array.from(movieCategoriesSelector)
-        .map((item) => item.innerText)
-        .join("|");
+      Array.from(movieMetaSelector).forEach((item) => {
+        if (item.innerText.includes("Đang phát:")) {
+          movieStatus =
+            item.innerText.replace("Đang phát:", "").trim() || "Hoàn Thành";
+          movieEpisode = item.innerText.replace("Đang phát:", "").trim() || "";
+          if (
+            !movieStatus.toLowerCase().includes("hoàn tất") &&
+            document.querySelector(".latest-episode")
+          ) {
+            movieStatus = "Đang Tiến Hành";
+          }
+        } else if (item.innerText.includes("Năm Phát Hành:")) {
+          moviePublish =
+            item.innerText.replace("Năm Phát Hành: ", "").trim() || "";
+        } else if (item.innerText.includes("Quốc gia:")) {
+          movieCountry =
+            item.innerText.replace("Năm phát hành: ", "").trim() || "";
+        } else if (item.innerText.includes("Thể loại:")) {
+          const movieCategoriesSelector = item.querySelectorAll("a");
+          movieCategories = Array.from(movieCategoriesSelector)
+            .map((item) => item.innerText)
+            .join("|");
+        } else if (item.innerText.includes("Đạo diễn:")) {
+          const movieDirectorsSelector = item.querySelectorAll("a");
+          movieDirectors = Array.from(movieDirectorsSelector)
+            .map((item) => item.innerText)
+            .join("|");
+        } else if (item.innerText.includes("Diễn viên:")) {
+          const movieCastSelector = item.querySelectorAll("a");
+          movieCast = Array.from(movieCastSelector)
+            .map((item) => item.innerText)
+            .join("|");
+        } else if (item.innerText.includes("Thời lượng:")) {
+          movieDuration =
+            item.innerText.replace("Thời lượng:", "").trim() || "";
+        }
+      });
 
-      const movieCountry =
-        document.querySelector(".film-info .entry-meta li:nth-child(3) a")
-          ?.innerText || "";
-
-      const movieDirectorsSelector = document.querySelectorAll(
-        ".film-info .entry-meta li:nth-child(5) a"
-      );
-      const movieDirectors = Array.from(movieDirectorsSelector)
-        .map((item) => item.innerText)
-        .join("|");
-
-      const movieCastSelector = document.querySelectorAll(
-        ".film-info .entry-meta li:nth-child(8) a"
-      );
-      const movieCast = Array.from(movieCastSelector)
-        .map((item) => item.innerText)
-        .join("|");
       const movieTagsSelector = document.querySelectorAll(".tags-list a");
       const movieTags = Array.from(movieTagsSelector)
         .map((item) => item.innerText)
         .join("|");
 
-      let movieStatus =
-        document.querySelector(".film-info .entry-meta li:nth-child(1) span")
-          ?.innerText || "Hoàn Thành";
-      if (
-        !movieStatus.toLowerCase().includes("hoàn tất") &&
-        document.querySelector(".latest-episode")
-      ) {
-        movieStatus = "Đang Tiến Hành";
-      }
-
-      const moviePublish =
-        document.querySelector(".film-info .entry-meta li:nth-child(2) a")
-          ?.innerText || "";
-      const movieDuration =
-        document
-          .querySelector(".film-info .entry-meta li:nth-child(7)")
-          ?.innerText.replace("Thời lượng:", "")
-          .trim() || "";
-
       const movieDescription =
         document.querySelector("#film-content")?.innerText || "";
-      const movieEpisode =
-        document.querySelector(".film-info .entry-meta li:nth-child(1) span")
-          .innerText || "";
 
-      let movieEpisodeTotal = "";
-      let movieEpisodeCurrent = "";
+      let movieEpisodeTotal = 1;
+      let movieEpisodeCurrent = movieEpisode;
       if (movieEpisode.toLowerCase().includes("hoàn tất")) {
         const split = movieEpisode.substring(
           movieEpisode.indexOf("(") + 1,
@@ -346,7 +346,7 @@ async function getPost(browser, idsUpdate) {
         movieEpisodeCurrent =
           document
             .querySelector(".latest-episode a")
-            .innerText.replace("Tập", "")
+            ?.innerText.replace("Tập", "")
             .trim()?.innerText || 1;
       } else if (movieEpisode.includes("/")) {
         const split = movieEpisode.split("/");
@@ -359,6 +359,30 @@ async function getPost(browser, idsUpdate) {
           .substring(movieEpisodeCurrent.lastIndexOf(" "))
           .trim();
       }
+
+      let movieTrailer = "";
+      document.querySelector(".list-button li:nth-child(1) a")?.click();
+      await new Promise((resolve) => {
+        let times = 0;
+        const timeout = setInterval(() => {
+          times += 1;
+          movieTrailer =
+            document
+              .querySelector("#mediaplayer_youtube")
+              ?.src?.split("?")[0] || "";
+          if (movieTrailer || times > 10) {
+            clearInterval(timeout);
+            resolve();
+          }
+        }, 500);
+      });
+
+      const movieWatch =
+        document
+          .querySelector(".list-button li:nth-child(2):not(#download) a")
+          ?.href?.split("-")
+          .pop()
+          .replace("pm", "") || "";
 
       return {
         movieId,
@@ -375,6 +399,8 @@ async function getPost(browser, idsUpdate) {
         moviePublish,
         movieDuration,
         movieDescription,
+        movieTrailer,
+        movieWatch,
         movieEpisodeTotal,
         movieEpisodeCurrent,
       };

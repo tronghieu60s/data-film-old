@@ -8,7 +8,7 @@ const {
   PathPostData,
   PathWatchData,
   PathPostTempData,
-  PathResultNewData,
+  PathNewData,
   PathPrevData,
 } = require("./core/const");
 
@@ -69,7 +69,7 @@ async function main() {
   const changedData = await getChangedCsv(resultData);
 
   const csvChangedString = papa.unparse(changedData, { header: true });
-  fs.writeFileSync(PathResultNewData, csvChangedString, { flag: "w" });
+  fs.writeFileSync(PathNewData, csvChangedString, { flag: "w" });
 
   console.log("Hoàn tất!");
 }

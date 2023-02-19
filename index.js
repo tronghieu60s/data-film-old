@@ -5,10 +5,10 @@ const phimmoichill = require("./phimmoichill");
 // Every Hour
 const main = async () => {
   console.log(new Date().toLocaleString("vi"));
-  await animehay();
-  // await phimmoichill();
+  // await animehay();
+  await phimmoichill();
   console.log("--------------------");
 };
 
 main();
-cron.schedule("0 * * * *", main);
+// cron.schedule("0 * * * *", main);
