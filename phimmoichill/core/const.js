@@ -7,8 +7,6 @@ const PathNewData = "./phimmoichill/data/result_new.csv";
 
 const PathPostTempData = "./phimmoichill/temp/update_post.txt";
 const PathWatchTempData = "./phimmoichill/temp/update_watch.txt";
-const PathPostDuplicateData = "./phimmoichill/temp/duplicate_post.txt";
-const PathWatchDuplicateData = "./phimmoichill/temp/duplicate_watch.txt";
 
 module.exports = {
   PathPrevData,
@@ -19,6 +17,4 @@ module.exports = {
   PathNewData,
   PathPostTempData,
   PathWatchTempData,
-  PathPostDuplicateData,
-  PathWatchDuplicateData,
 };

@@ -6,13 +6,10 @@ const {
   PathWatchData,
   PathPostTempData,
   PathWatchTempData,
-  PathPostDuplicateData,
-  PathWatchDuplicateData,
 } = require("./core/const");
 
 async function main() {
   await testConflict();
-  await testDuplicateData();
 }
 
 main();
@@ -44,7 +41,7 @@ async function testConflict() {
     const postItem = postData[trackItemId];
 
     if (!postItem) {
-      ids.push(trackItemId);
+      idsPost.push(trackItemId);
       continue;
     }
 
@@ -117,50 +114,4 @@ async function testConflict() {
   }
 
   fs.writeFileSync(PathWatchTempData, idsWatch.join("\n"), { flag: "a" });
-}
-
-async function testDuplicateData() {
-  /* Duplicate Post Data */
-  const postData = papa.parse(
-    fs.readFileSync(PathPostData, { flag: "r", encoding: "utf8" }),
-    { header: true, skipEmptyLines: true }
-  ).data;
-
-  const idsPost = [];
-  for (let i = 0; i < postData.length; i += 1) {
-    for (let j = 0; j < postData.length; j += 1) {
-      if (i === j) continue;
-
-      if (postData[i].movieId === postData[j].movieId) {
-        idsPost.push(postData[i].movieId);
-        continue;
-      }
-    }
-  }
-
-  fs.writeFileSync(PathPostDuplicateData, [...new Set(idsPost)].join("\n"), {
-    flag: "w",
-  });
-
-  /* Duplicate Watch Data */
-  const watchData = papa.parse(
-    fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }),
-    { header: true, skipEmptyLines: true }
-  ).data;
-
-  const idsWatch = [];
-  for (let i = 0; i < watchData.length; i += 1) {
-    for (let j = 0; j < watchData.length; j += 1) {
-      if (i === j) continue;
-
-      if (watchData[i].movieEpId === watchData[j].movieEpId) {
-        idsWatch.push(watchData[i].movieEpId);
-        continue;
-      }
-    }
-  }
-
-  fs.writeFileSync(PathWatchDuplicateData, [...new Set(idsWatch)].join("\n"), {
-    flag: "w",
-  });
 }

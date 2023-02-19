@@ -7,8 +7,6 @@ const PathResultData = "./animehay/data/result.csv";
 
 const PathPostTempData = "./animehay/temp/update_post.txt";
 const PathWatchTempData = "./animehay/temp/update_watch.txt";
-const PathPostDuplicateData = "./animehay/temp/duplicate_post.txt";
-const PathWatchDuplicateData = "./animehay/temp/duplicate_watch.txt";
 
 module.exports = {
   PathNewData,
@@ -19,6 +17,4 @@ module.exports = {
   PathResultData,
   PathPostTempData,
   PathWatchTempData,
-  PathPostDuplicateData,
-  PathWatchDuplicateData,
 };
