@@ -5,6 +5,8 @@ const {
   PathTrackingData,
   PathPostData,
   PathPostTempData,
+  PathWatchTempData,
+  PathWatchData,
 } = require("./core/const");
 
 const curDate = new Date();
