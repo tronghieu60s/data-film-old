@@ -48,7 +48,9 @@ async function main() {
 
   console.log("Đang cập nhật dữ liệu...");
   const idsPost = await getPost(browser, idsTracking);
-  console.log("Dữ liệu tập phim mới: ", idsPost.join(", ") || "No Data");
+
+  console.log("Đang cập nhật dữ liệu xem phim...");
+  await getWatch(browser, idsPost);
 
   console.log("Hoàn tất!");
 }
@@ -237,7 +239,6 @@ async function getPost(browser, idsUpdate) {
       {}
     );
 
-  const ids = [];
   const page = await browser.newPage();
 
   const idsTemp =
@@ -408,22 +409,7 @@ async function getPost(browser, idsUpdate) {
       };
     });
 
-    const prevDataItem = prevData?.[pageData.movieId];
-    if (!prevDataItem) {
-      prevData[pageData.movieId] = pageData;
-      ids.push(pageData.movieId);
-    }
-
-    if (prevDataItem?.movieEpisodeCurrent !== pageData?.movieEpisodeCurrent) {
-      prevData[pageData.movieId] = pageData;
-      ids.push(pageData.movieId);
-    }
-
-    if (i % 20 === 0) {
-      const csvDataArr = Object.values(prevData);
-      const csvDataString = papa.unparse(csvDataArr, { header: true });
-      fs.writeFileSync(PathPostData, csvDataString, { flag: "w" });
-    }
+    prevData[pageData.movieId] = pageData;
   }
 
   const csvDataArr = Object.values(prevData);
@@ -431,8 +417,53 @@ async function getPost(browser, idsUpdate) {
   fs.writeFileSync(PathPostData, csvDataString, { flag: "w" });
 
   await page.close();
+}
 
-  return ids;
+async function getWatch(browser, idsUpdate) {
+  const prevData = papa.parse(
+    fs.readFileSync(PathWatchData, { flag: "r", encoding: "utf8" }),
+    { header: true, skipEmptyLines: true }
+  ).data;
+
+  const page = await browser.newPage();
+
+  browser.on("targetcreated", async (target) => {
+    const page = await target.page();
+    if (page) page.close();
+  });
+
+  const idsTemp =
+    fs
+      .readFileSync(PathWatchTempData, "utf8")
+      .split("\n")
+      .filter((item) => item) || [];
+  fs.writeFileSync(PathWatchTempData, "");
+
+  idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
+  for (let i = 0; i < idsUpdate.length; i += 1) {
+    const link = idsUpdate[i];
+
+    const path = `https://phimmoichilla.net/xem/-pm${link}`;
+    await page.goto(path);
+
+    const listData = await page.evaluate(() => {
+      const list = document.querySelectorAll("#list_episodes li a");
+      const listData = Array.from(list).map((item) => {
+        const ep = item.innerText.replace("Tập", "").trim();
+        const link = item.getAttribute("data-id");
+        return `${ep}|${link}`;
+      });
+      return listData;
+    });
+
+    const pageData = await page.evaluate(() => {
+      const serverBtn = document.querySelectorAll(".list-episode a");
+      Array.from(serverBtn).forEach((item) => {
+        if (item.innerText.includes("PMFAST")) item.click();
+      });
+
+    });
+  }
 }
 
 module.exports = main;

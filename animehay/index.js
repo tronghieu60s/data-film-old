@@ -53,7 +53,7 @@ async function main() {
   const idsPost = await getPost(browser, idsTracking);
   console.log("Dữ liệu tập phim mới: ", idsPost.join(", ") || "No Data");
 
-  console.log("Đang cập nhật dữ liệu...");
+  console.log("Đang cập nhật dữ liệu xem phim...");
   await getWatch(browser, idsPost);
 
   await browser.close();
