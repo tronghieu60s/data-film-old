@@ -49,8 +49,8 @@ async function main() {
   console.log("Đang cập nhật dữ liệu...");
   const idsPost = await getPost(browser, idsTracking);
 
-  console.log("Đang cập nhật dữ liệu xem phim...");
-  await getWatch(browser, idsPost);
+  // console.log("Đang cập nhật dữ liệu xem phim...");
+  // await getWatch(browser, idsPost);
 
   console.log("Hoàn tất!");
 }
@@ -239,6 +239,7 @@ async function getPost(browser, idsUpdate) {
       {}
     );
 
+  const ids = [];
   const page = await browser.newPage();
 
   const idsTemp =
@@ -381,11 +382,8 @@ async function getPost(browser, idsUpdate) {
       });
 
       const movieWatch =
-        document
-          .querySelector(".list-button li:nth-child(2):not(#download) a")
-          ?.href?.split("-")
-          .pop()
-          .replace("pm", "") || "";
+        document.querySelector(".list-button li:nth-child(2):not(#download) a")
+          ?.href || "";
 
       return {
         movieId,
@@ -409,7 +407,47 @@ async function getPost(browser, idsUpdate) {
       };
     });
 
-    prevData[pageData.movieId] = pageData;
+    let movieEpisodes = "";
+    const watchLink = pageData.movieWatch;
+    if (watchLink) {
+      await page.goto(watchLink);
+      movieEpisodes = await page.evaluate(() => {
+        const list = document.querySelectorAll(
+          "#list-server #list_episodes li a"
+        );
+
+        const movieLink =
+          document.querySelector("link[rel=canonical]")?.href || "";
+        const movieId = movieLink?.split("-").pop().replace("pm", "") || "";
+
+        if (!list.length) {
+          return `Full|${movieId}`;
+        }
+        const episodes = Array.from(list).map((item) => {
+          const ep = item.innerText.replace("Tập", "").trim();
+          const link = item.getAttribute("data-id");
+          return `${ep}|${link}`;
+        });
+        return `${episodes.join("||")}`;
+      });
+    }
+    delete pageData.movieWatch;
+    pageData.movieEpisodes = movieEpisodes;
+
+    const prevDataItem = prevData?.[pageData.movieId];
+    if (!prevDataItem) {
+      prevData[pageData.movieId] = pageData;
+      ids.push(...pageData.movieEpisodes.split("||"));
+    }
+
+    if (prevDataItem?.movieEpisodes !== pageData?.movieEpisodes) {
+      prevData[pageData.movieId] = pageData;
+      const epsData = pageData.movieEpisodes.replace(
+        `${prevDataItem?.movieEpisodes || ""}||`,
+        ""
+      );
+      ids.push(...epsData.split("||"));
+    }
   }
 
   const csvDataArr = Object.values(prevData);
@@ -417,6 +455,8 @@ async function getPost(browser, idsUpdate) {
   fs.writeFileSync(PathPostData, csvDataString, { flag: "w" });
 
   await page.close();
+
+  return ids;
 }
 
 async function getWatch(browser, idsUpdate) {
@@ -461,7 +501,6 @@ async function getWatch(browser, idsUpdate) {
       Array.from(serverBtn).forEach((item) => {
         if (item.innerText.includes("PMFAST")) item.click();
       });
-
     });
   }
 }
