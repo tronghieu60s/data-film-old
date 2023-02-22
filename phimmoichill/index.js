@@ -42,15 +42,15 @@ async function main() {
   console.log("Đang mở trình duyệt...");
   const browser = await puppeteer.launch({ headless: false });
 
-  console.log("Lấy dữ liệu...");
-  const idsTracking = await getTracking(browser);
-  console.log("Dữ liệu mới: ", idsTracking.join(", ") || "No Data");
+  // console.log("Lấy dữ liệu...");
+  // const idsTracking = await getTracking(browser);
+  // console.log("Dữ liệu mới: ", idsTracking.join(", ") || "No Data");
 
-  console.log("Đang cập nhật dữ liệu...");
-  const idsPost = await getPost(browser, idsTracking);
+  // console.log("Đang cập nhật dữ liệu...");
+  // const idsPost = await getPost(browser, idsTracking);
 
   // console.log("Đang cập nhật dữ liệu xem phim...");
-  // await getWatch(browser, idsPost);
+  await getWatch(browser, []);
 
   console.log("Hoàn tất!");
 }
@@ -477,32 +477,85 @@ async function getWatch(browser, idsUpdate) {
       .readFileSync(PathWatchTempData, "utf8")
       .split("\n")
       .filter((item) => item) || [];
-  fs.writeFileSync(PathWatchTempData, "");
+  // fs.writeFileSync(PathWatchTempData, "");
 
   idsUpdate = [...new Set([...idsTemp, ...idsUpdate])];
   for (let i = 0; i < idsUpdate.length; i += 1) {
-    const link = idsUpdate[i];
+    const [ep, link] = idsUpdate[i]?.split("|");
+    if (!link) continue;
 
     const path = `https://phimmoichilla.net/xem/-pm${link}`;
-    await page.goto(path);
+    await page.goto(path, { timeout: 0 });
 
-    const listData = await page.evaluate(() => {
-      const list = document.querySelectorAll("#list_episodes li a");
-      const listData = Array.from(list).map((item) => {
-        const ep = item.innerText.replace("Tập", "").trim();
-        const link = item.getAttribute("data-id");
-        return `${ep}|${link}`;
-      });
-      return listData;
-    });
+    console.log(path);
+
+    try {
+      await page.waitForSelector(".film-info", { timeout: 5000 });
+    } catch (error) {}
+
+    if (!page.url().includes("https://phimmoichilla.net/xem/")) {
+      fs.writeFileSync(PathPostTempData, `${link}\n`, { flag: "a" });
+      continue;
+    }
 
     const pageData = await page.evaluate(() => {
-      const serverBtn = document.querySelectorAll(".list-episode a");
-      Array.from(serverBtn).forEach((item) => {
-        if (item.innerText.includes("PMFAST")) item.click();
-      });
+      const movieId =
+        document
+          .querySelector(".film-info a")
+          ?.href?.split("-")
+          .pop()
+          .replace("pm", "") || "";
+      const movieLinkSelector = document.querySelector("link[rel=canonical]");
+      const movieLink = movieLinkSelector?.href || "";
+      const movieEpId = movieLink?.split("-").pop().replace("pm", "") || "";
+
+      return { movieId, movieEpId, movieLink };
     });
+
+    await page.evaluate(() => {
+      const btnServer = document.querySelectorAll(".list-episode a");
+      btnServer?.[1]?.click();
+      btnServer?.[0]?.click();
+    });
+    const videoStx = await getVideoHls(page);
+
+    prevData.push({ movieEp: ep, ...pageData, videoStx: videoStx || "" });
+
+    if (i % 10 === 0) {
+      const csvDataString = papa.unparse(prevData, { header: true });
+      fs.writeFileSync(PathWatchData, csvDataString, { flag: "w" });
+    }
   }
+
+  const csvDataString = papa.unparse(prevData, { header: true });
+  fs.writeFileSync(PathWatchData, csvDataString, { flag: "w" });
+
+  await page.close();
+}
+
+async function getVideoHls(page) {
+  return await new Promise((resolve) => {
+    const timeout = setInterval(() => {
+      clearInterval(timeout);
+      resolve(false);
+    }, 2000);
+    page.on("request", (request) => {
+      if (request.url().indexOf("https://dash.megacdn.xyz/hlspm/") > -1) {
+        clearInterval(timeout);
+        const url = request
+          .url()
+          .replace("https://dash.megacdn.xyz/hlspm/", "");
+        resolve(url);
+      }
+      if (request.url().indexOf("https://so-trym.topphimmoi.org/hlspm/") > -1) {
+        clearInterval(timeout);
+        const url = request
+          .url()
+          .replace("https://so-trym.topphimmoi.org/hlspm/", "");
+        resolve(url);
+      }
+    });
+  });
 }
 
 module.exports = main;

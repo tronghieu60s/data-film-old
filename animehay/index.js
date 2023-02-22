@@ -331,15 +331,15 @@ async function getWatch(browser, idsUpdate) {
       const svHydrax = document.querySelector("#sv_Hydrax");
       svHydrax?.click();
 
+      const movieId =
+        document
+          .querySelector('a[title="Thông tin phim"]')
+          ?.href?.split("-")
+          .pop()
+          .split(".")[0] || "";
       const movieLinkSelector = document.querySelector("link[rel=canonical]");
       const movieLink = movieLinkSelector?.href || "";
       const movieEpId = movieLink?.split("-").pop().split(".")[0] || "";
-
-      const movieIdSelector = document.querySelector(
-        'a[title="Thông tin phim"]'
-      );
-      const movieId =
-        movieIdSelector?.href?.split("-").pop().split(".")[0] || "";
 
       const movieHdxSelector = document.querySelector("#video-player iframe");
       const movieHdx = movieHdxSelector?.src || "";
