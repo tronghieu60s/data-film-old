@@ -1,5 +1,6 @@
 const fs = require("fs");
 const papa = require("papaparse");
+const { v4: uuidv4 } = require("uuid");
 const puppeteer = require("puppeteer");
 const {
   PathResultData,
@@ -264,6 +265,8 @@ async function getPost(browser, idsUpdate) {
     });
 
     const prevDataItem = prevData?.[pageData.movieId];
+    pageData.movieUniqueId = prevDataItem?.movieUniqueId || uuidv4();
+
     if (!prevDataItem) {
       prevData[pageData.movieId] = pageData;
       ids.push(...pageData.movieEpisodes.split("||"));
@@ -380,7 +383,6 @@ async function getExportCsv() {
 
   for (let index = 0; index < postData.length; index += 1) {
     delete postData[index].movieLink;
-    postData[index].movieUniqueId = `animehay-${postData[index].movieId}`;
     postData[index].movieTags = postData[index]?.movieOriginalName
       .split(",")
       .join("|")

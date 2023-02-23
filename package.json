@@ -12,6 +12,7 @@
   "dependencies": {
     "node-cron": "^3.0.2",
     "papaparse": "^5.3.2",
-    "puppeteer": "^19.6.1"
+    "puppeteer": "^19.6.1",
+    "uuid": "^9.0.0"
   }
 }
